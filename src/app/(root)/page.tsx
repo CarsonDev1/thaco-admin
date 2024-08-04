@@ -1,7 +1,7 @@
 'use client';
 import ProtectedRoute from '@/utils/ProtectedRoute';
 
-const Home: React.FC<User> = ({ user }) => {
+const Home: React.FC = ({ user }: any) => {
 	return (
 		<main>
 			<div>
