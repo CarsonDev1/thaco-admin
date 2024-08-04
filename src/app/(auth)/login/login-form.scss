@@ -1,0 +1,102 @@
+// components/login-form.scss
+.login-form {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	min-height: 100vh;
+	background-color: #f0f2f5;
+	padding: 20px;
+
+	h1 {
+		color: #333;
+		font-family: 'Arial', sans-serif;
+		font-size: 24px;
+		text-align: center;
+	}
+
+	form {
+		background-color: #fff;
+		padding: 30px;
+		border-radius: 10px;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		width: 100%;
+		max-width: 400px;
+		display: flex;
+		flex-direction: column;
+
+		.form-group {
+			margin-bottom: 20px;
+			width: 100%;
+
+			.input-wrapper {
+				position: relative;
+				display: flex;
+				align-items: center;
+
+				.icon {
+					position: absolute;
+					left: 10px;
+					color: #888;
+				}
+
+				.toggle-password {
+					position: absolute;
+					right: 10px;
+					color: #888;
+					cursor: pointer;
+				}
+
+				input {
+					width: 100%;
+					padding: 10px 10px 10px 30px;
+					border: 1px solid #ccc;
+					border-radius: 5px;
+					font-size: 16px;
+					box-sizing: border-box;
+				}
+			}
+
+			.error-message {
+				color: #ff6b6b;
+				margin-top: 5px;
+				font-size: 14px;
+				text-align: left;
+			}
+		}
+
+		button {
+			background-color: #007bff;
+			color: #fff;
+			padding: 10px;
+			border: none;
+			border-radius: 5px;
+			font-size: 16px;
+			cursor: pointer;
+			transition: background-color 0.3s ease;
+			width: 100%;
+
+			&:hover {
+				background-color: #0056b3;
+			}
+		}
+	}
+
+	.error-message {
+		color: #ff6b6b;
+		margin-top: 20px;
+		font-size: 16px;
+		text-align: center;
+	}
+}
+
+// Responsive design
+@media (max-width: 768px) {
+	.login-form {
+		padding: 10px;
+
+		form {
+			padding: 20px;
+		}
+	}
+}

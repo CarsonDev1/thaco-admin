@@ -1,0 +1,9 @@
+.button-add {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 24px;
+
+	@media (max-width: 1200px) {
+		margin-top: 32px;
+	}
+}

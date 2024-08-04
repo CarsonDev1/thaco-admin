@@ -1,0 +1,26 @@
+.add-form {
+	margin: 0 auto;
+	padding: 20px;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+	background-color: #fff;
+}
+
+/* Hide number input spinner arrows */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+input[type='number'] {
+	-moz-appearance: textfield; /* Hide arrows in Firefox */
+}
+
+.loading-button {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 48px;
+}
