@@ -1,7 +1,5 @@
 'use client';
-import React, { useState } from 'react';
-import ButtonAdd from '@/app/components/btn-add/ButtonAdd';
-import ProtectedRoute from '@/utils/ProtectedRoute';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
 	Paper,
 	Table,
@@ -20,14 +18,19 @@ import { getAllProducts } from '@/app/api/product/getProducts';
 import { updateProduct } from '@/app/api/product/updateProduct';
 import { deleteProduct } from '@/app/api/product/deleteProduct';
 import { useRouter } from 'next/navigation';
-import EditModal from '@/app/components/modal-edit/ModalEdit';
-import Image from 'next/image';
 import Swal from 'sweetalert2';
+import Image from 'next/image';
+import ButtonAdd from '@/app/components/btn-add/ButtonAdd';
+import dynamic from 'next/dynamic';
 import { Category } from '@/types/category';
 import { getAllCategory } from '@/app/api/category/getCategory';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import './product.scss';
+import { isEqual } from 'lodash';
+
+// Dynamic import for EditModal to ensure it's only rendered on the client side
+const EditModal = dynamic(() => import('@/app/components/modal-edit/ModalEdit'), { ssr: false });
 
 interface Product {
 	_id: string;
@@ -48,7 +51,7 @@ const formatCurrency = (value: number) => {
 	}).format(value);
 };
 
-const ProductComponent: React.FC = () => {
+const Product: React.FC = () => {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -73,39 +76,66 @@ const ProductComponent: React.FC = () => {
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const itemsPerPage = 4;
+	const [isClient, setIsClient] = useState(false);
+
+	useEffect(() => {
+		setIsClient(true);
+	}, []);
+
+	const {
+		data: products,
+		isLoading,
+		error,
+	} = useQuery<Product[]>({
+		queryKey: ['listProducts'],
+		queryFn: getAllProducts,
+		select: (products) =>
+			products.map((product) => ({
+				...product,
+				category: Array.isArray(product.category) ? product.category : [],
+			})),
+	});
+
+	const { data: categories } = useQuery<Category[]>({
+		queryKey: ['listCategories'],
+		queryFn: getAllCategory,
+	});
 
 	const handleMoveAddProduct = () => {
 		router.push('/add-form');
 	};
 
-	const handleOpen = (product: Product) => {
-		setSelectedProduct(product);
+	const handleOpen = useCallback(
+		(product: Product) => {
+			setSelectedProduct(product);
 
-		const selectedCategories =
-			categories?.filter((cat) => product.category.some((prodCat) => prodCat._id === cat._id)) || [];
+			const selectedCategories =
+				categories?.filter((cat) => product.category.some((prodCat) => prodCat._id === cat._id)) || [];
 
-		setOriginalProductDetails({
-			title: product.title,
-			description: product.description,
-			imageUrls: product.imageUrls,
-			price: product.price,
-			category: selectedCategories,
-			discountPrice: product.discountPrice,
-		});
+			setOriginalProductDetails({
+				title: product.title,
+				description: product.description,
+				imageUrls: product.imageUrls,
+				price: product.price,
+				category: selectedCategories,
+				discountPrice: product.discountPrice,
+			});
 
-		setProductDetails({
-			title: product.title,
-			description: product.description,
-			imageUrls: product.imageUrls,
-			price: product.price,
-			category: selectedCategories,
-			discountPrice: product.discountPrice,
-		});
+			setProductDetails({
+				title: product.title,
+				description: product.description,
+				imageUrls: product.imageUrls,
+				price: product.price,
+				category: selectedCategories,
+				discountPrice: product.discountPrice,
+			});
 
-		setImagePreviewUrls(product.imageUrls);
-		setSelectedFiles([]);
-		setOpen(true);
-	};
+			setImagePreviewUrls(product.imageUrls);
+			setSelectedFiles([]);
+			setOpen(true);
+		},
+		[categories]
+	);
 
 	const handleClose = () => {
 		setOpen(false);
@@ -115,10 +145,10 @@ const ProductComponent: React.FC = () => {
 	};
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setProductDetails({
-			...productDetails,
+		setProductDetails((prev) => ({
+			...prev,
 			[e.target.name]: e.target.value,
-		});
+		}));
 	};
 
 	const handleCategoryChange = (event: React.ChangeEvent<{}>, value: Category[]) => {
@@ -129,37 +159,24 @@ const ProductComponent: React.FC = () => {
 	};
 
 	const handleEditorChange = (value: string) => {
-		setProductDetails({
-			...productDetails,
+		setProductDetails((prevDetails) => ({
+			...prevDetails,
 			description: value,
-		});
+		}));
 	};
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const files = Array.from(e.target.files || []);
-		if (files.some((file) => file.size > 50 * 1024 * 1024)) {
-			alert('Some files are too large');
-			return;
+	const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		if (typeof window !== 'undefined') {
+			const files = Array.from(e.target.files || []);
+			if (files.some((file) => file.size > 50 * 1024 * 1024)) {
+				alert('Some files are too large');
+				return;
+			}
+			setSelectedFiles((prevFiles) => [...prevFiles, ...files]);
+			const urls = files.map((file) => URL.createObjectURL(file));
+			setImagePreviewUrls((prevUrls) => [...prevUrls, ...urls]);
 		}
-		setSelectedFiles((prevFiles) => [...prevFiles, ...files]);
-		const urls = files.map((file) => URL.createObjectURL(file));
-		setImagePreviewUrls((prevUrls) => [...prevUrls, ...urls]);
-	};
-
-	const { data, isLoading, error } = useQuery<Product[]>({
-		queryKey: ['listProducts'],
-		queryFn: getAllProducts,
-		select: (products) =>
-			products.map((product) => ({
-				...product,
-				category: Array.isArray(product.category) ? product.category : [],
-			})),
-	});
-
-	const { data: categories } = useQuery<Category[] | undefined>({
-		queryKey: ['listCategories'],
-		queryFn: getAllCategory,
-	});
+	}, []);
 
 	const { mutate: mutateUpdateProduct } = useMutation({
 		mutationFn: updateProduct,
@@ -236,91 +253,74 @@ const ProductComponent: React.FC = () => {
 
 	const handleImageRemove = (index: number) => {
 		const updatedPreviewUrls = imagePreviewUrls.filter((_, i) => i !== index);
+		const updatedSelectedFiles = selectedFiles.filter((_, i) => i !== index);
+
 		setImagePreviewUrls(updatedPreviewUrls);
-
-		setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
-
-		setProductDetails((prevDetails) => ({
-			...prevDetails,
-			imageUrls: updatedPreviewUrls,
-		}));
+		setSelectedFiles(updatedSelectedFiles);
 	};
 
-	const hasChanges = () => {
-		return (
-			JSON.stringify(productDetails) !== JSON.stringify(originalProductDetails) ||
-			!imagePreviewUrls.every((url, index) => url === originalProductDetails.imageUrls[index])
-		);
-	};
+	const totalPages = Math.ceil((products?.length || 0) / itemsPerPage);
+	const displayedProducts = products?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-	const handlePageChange = (newPage: number) => {
+	const handleChangePage = (newPage: number) => {
 		setCurrentPage(newPage);
 	};
 
-	if (isLoading) return <div>Loading...</div>;
-	if (error) return <div>Error loading products</div>;
-
-	// Pagination logic
-	const indexOfLastItem = currentPage * itemsPerPage;
-	const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-	const currentItems = data?.slice(indexOfFirstItem, indexOfLastItem);
-
-	const totalPages = Math.ceil((data?.length || 0) / itemsPerPage);
-
 	return (
-		<div className='product'>
-			<ButtonAdd title='Sản phẩm' nameBtn='Thêm sản phẩm' onClick={handleMoveAddProduct} />
-			<TableContainer component={Paper}>
+		<div className='product-admin-container'>
+			<Stack direction='row' justifyContent='space-between' alignItems='center'>
+				<Typography variant='h4' gutterBottom>
+					Quản lý sản phẩm
+				</Typography>
+				<Button variant='contained' color='primary' onClick={handleMoveAddProduct}>
+					Thêm sản phẩm
+				</Button>
+			</Stack>
+			<TableContainer component={Paper} className='table-container'>
 				<Table>
 					<TableHead>
 						<TableRow>
-							<TableCell>Id</TableCell>
-							<TableCell>Tên sản phẩm</TableCell>
 							<TableCell>Hình ảnh</TableCell>
+							<TableCell>Tên sản phẩm</TableCell>
 							<TableCell>Giá</TableCell>
-							<TableCell>Giá Giảm</TableCell>
-							{/* <TableCell>Category</TableCell> */}
-							<TableCell></TableCell>
+							<TableCell>Giảm giá</TableCell>
+							<TableCell>Thao tác</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
-						{currentItems?.map((product) => (
-							<TableRow key={product._id}>
-								<TableCell className='truncate-cell'>{product._id}</TableCell>
-								<TableCell className='truncate-cell'>{product.title}</TableCell>
-								<TableCell className='truncate-cell'>
-									{product.imageUrls && product.imageUrls.length > 0 && (
-										<div>
-											<Image
-												src={product.imageUrls[0]}
-												width={150}
-												height={80}
-												alt='image'
-												priority
-											/>
-										</div>
-									)}
+						{isLoading && (
+							<TableRow>
+								<TableCell colSpan={5} align='center'>
+									Loading...
 								</TableCell>
-								<TableCell className='truncate-cell'>{formatCurrency(product.price)}</TableCell>
-								<TableCell className='truncate-cell'>{formatCurrency(product.discountPrice)}</TableCell>
-								{/* <TableCell className='truncate-cell'>
-										{Array.isArray(product.category)
-											? product.category.map((cat) => cat.name).join(', ')
-											: ''}
-									</TableCell> */}
+							</TableRow>
+						)}
+						{error && (
+							<TableRow>
+								<TableCell colSpan={5} align='center'>
+									Error loading products
+								</TableCell>
+							</TableRow>
+						)}
+						{displayedProducts?.map((product) => (
+							<TableRow key={product._id}>
 								<TableCell>
-									<IconButton
-										onClick={() => handleOpen(product)}
-										className='icon-button'
-										aria-label='edit'
-									>
+									<Image
+										src={product.imageUrls[0] || '/placeholder.png'}
+										alt={product.title}
+										width={50}
+										height={50}
+										style={{ objectFit: 'cover' }}
+									/>
+								</TableCell>
+								<TableCell>{product.title}</TableCell>
+								<TableCell>{formatCurrency(product.price)}</TableCell>
+								<TableCell>{formatCurrency(product.discountPrice)}</TableCell>
+								<TableCell>
+									<IconButton onClick={() => handleOpen(product)}>
 										<EditIcon />
 									</IconButton>
-									<IconButton
-										onClick={() => handleDelete(product._id)}
-										className='icon-button'
-										aria-label='delete'
-									>
+									<IconButton onClick={() => handleDelete(product._id)}>
 										<DeleteIcon />
 									</IconButton>
 								</TableCell>
@@ -329,50 +329,38 @@ const ProductComponent: React.FC = () => {
 					</TableBody>
 				</Table>
 			</TableContainer>
-
-			<Stack direction='row' spacing={2} justifyContent='center' alignItems='center' mt={2}>
-				<Button
-					className='pagination-button'
-					variant='contained'
-					color='primary'
-					disabled={currentPage === 1}
-					onClick={() => handlePageChange(currentPage - 1)}
-				>
+			<Stack direction='row' justifyContent='center' spacing={2} className='pagination'>
+				<Button disabled={currentPage === 1} onClick={() => handleChangePage(currentPage - 1)}>
 					Previous
 				</Button>
-				<Typography variant='body1' className='pagination-text'>
+				<Typography variant='body1'>
 					Page {currentPage} of {totalPages}
 				</Typography>
-				<Button
-					className='pagination-button'
-					variant='contained'
-					color='primary'
-					disabled={currentPage === totalPages}
-					onClick={() => handlePageChange(currentPage + 1)}
-				>
+				<Button disabled={currentPage === totalPages} onClick={() => handleChangePage(currentPage + 1)}>
 					Next
 				</Button>
 			</Stack>
-
-			<EditModal
-				open={open}
-				handleClose={handleClose}
-				handleSave={handleSave}
-				productDetails={productDetails}
-				handleChange={handleChange}
-				handleCategoryChange={handleCategoryChange}
-				handleEditorChange={handleEditorChange}
-				handleFileChange={handleFileChange}
-				imagePreviewUrls={imagePreviewUrls}
-				handleImageRemove={handleImageRemove}
-				categories={categories || []}
-				hasChanges={hasChanges}
-				selectedFiles={selectedFiles}
-				setSelectedFiles={setSelectedFiles}
-				setImagePreviewUrls={setImagePreviewUrls}
-			/>
+			{isClient && (
+				<EditModal
+					open={open}
+					handleClose={handleClose}
+					productDetails={productDetails}
+					handleSave={handleSave}
+					handleChange={handleChange}
+					handleCategoryChange={handleCategoryChange}
+					handleEditorChange={handleEditorChange}
+					imagePreviewUrls={imagePreviewUrls}
+					handleFileChange={handleFileChange}
+					handleImageRemove={handleImageRemove}
+					selectedFiles={selectedFiles}
+					setSelectedFiles={setSelectedFiles}
+					setImagePreviewUrls={setImagePreviewUrls}
+					hasChanges={() => !isEqual(productDetails, originalProductDetails)}
+					categories={categories || []}
+				/>
+			)}
 		</div>
 	);
 };
 
-export default ProtectedRoute(ProductComponent);
+export default Product;

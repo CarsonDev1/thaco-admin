@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SidebarList from './SidebarList';
 import { CircularProgress } from '@mui/material';
 import { useUser } from '@/utils/UserContext';
@@ -26,24 +26,34 @@ const SideBar: React.FC = () => {
 		}
 	};
 
-	const handleClickOutside = (event: MouseEvent) => {
-		if (
-			isOpen &&
-			sidebarRef.current &&
-			burgerRef.current &&
-			!sidebarRef.current.contains(event.target as Node) &&
-			!burgerRef.current.contains(event.target as Node)
-		) {
-			toggleSidebar();
-		}
-	};
+	// Use callback ref to handle the outside click
+	const handleClickOutside = useCallback(
+		(event: MouseEvent) => {
+			if (
+				isOpen &&
+				sidebarRef.current &&
+				burgerRef.current &&
+				!sidebarRef.current.contains(event.target as Node) &&
+				!burgerRef.current.contains(event.target as Node)
+			) {
+				toggleSidebar();
+			}
+		},
+		[isOpen]
+	);
 
+	// Use the useEffect hook to attach the event listener to the window
 	useEffect(() => {
-		document.addEventListener('mousedown', handleClickOutside);
+		if (isOpen) {
+			window.addEventListener('mousedown', handleClickOutside);
+		} else {
+			window.removeEventListener('mousedown', handleClickOutside);
+		}
+
 		return () => {
-			document.removeEventListener('mousedown', handleClickOutside);
+			window.removeEventListener('mousedown', handleClickOutside);
 		};
-	}, [isOpen]);
+	}, [isOpen, handleClickOutside]);
 
 	if (loading) {
 		return <CircularProgress color='secondary' />;

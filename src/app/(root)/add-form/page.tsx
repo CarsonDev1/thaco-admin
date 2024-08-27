@@ -8,10 +8,12 @@ import { TextField, MenuItem, Box, Typography, Grid } from '@mui/material';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import { styled } from '@mui/material/styles';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import dynamic from 'next/dynamic';
 import Swal from 'sweetalert2';
 import './add-form.scss';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
 
 // Define a custom-styled button using the styled API
 const CustomButton = styled(Button)(({ loading }: { loading?: boolean }) => ({
@@ -68,7 +70,7 @@ const AddForm: React.FC = () => {
 	const [engine, setEngine] = useState<string>('');
 	const [loading, setLoading] = useState<boolean>(false);
 
-	const { data: categories } = useQuery<Category[] | undefined>({
+	const { data: categories } = useQuery<Category[]>({
 		queryKey: ['listCategories'],
 		queryFn: getAllCategory,
 	});
@@ -227,9 +229,6 @@ const AddForm: React.FC = () => {
 						fullWidth
 						required
 					>
-						<MenuItem value='' disabled>
-							Chọn loại sản phẩm
-						</MenuItem>
 						{categories?.map((category) => (
 							<MenuItem key={category._id} value={category._id}>
 								{category.name}
@@ -237,62 +236,29 @@ const AddForm: React.FC = () => {
 						))}
 					</TextField>
 				</Grid>
-				<Grid item xs={12} sm={6}>
-					<TextField
-						label='Kích Thước'
-						value={size}
-						onChange={(e) => setSize(e.target.value)}
-						fullWidth
-						required
-					/>
+				<Grid item xs={12}>
+					<input type='file' accept='image/*' multiple onChange={handleImageChange} />
 				</Grid>
-				<Grid item xs={12} sm={6}>
+				<Grid item xs={12}>
+					<input type='file' accept='video/*' onChange={handleVideoChange} />
+				</Grid>
+				<Grid item xs={12}>
+					<TextField label='Kích thước' value={size} onChange={(e) => setSize(e.target.value)} fullWidth />
+				</Grid>
+				<Grid item xs={12}>
 					<TextField
-						label='Dung Tải'
+						label='Tải trọng'
 						value={loadCapacity}
 						onChange={(e) => setLoadCapacity(e.target.value)}
 						fullWidth
-						required
-					/>
-				</Grid>
-				<Grid item xs={6}>
-					<TextField
-						label='Động Cơ'
-						value={engine}
-						onChange={(e) => setEngine(e.target.value)}
-						fullWidth
-						required
 					/>
 				</Grid>
 				<Grid item xs={12}>
-					<TextField
-						type='file'
-						inputProps={{ multiple: true }}
-						onChange={handleImageChange}
-						fullWidth
-						required
-						label='Hình Ảnh'
-						InputLabelProps={{ shrink: true }}
-					/>
+					<TextField label='Động cơ' value={engine} onChange={(e) => setEngine(e.target.value)} fullWidth />
 				</Grid>
-				{/* <Grid item xs={6}>
-					<TextField
-						type='file'
-						onChange={handleVideoChange}
-						fullWidth
-						label='Video'
-						InputLabelProps={{ shrink: true }}
-					/>
-				</Grid> */}
 				<Grid item xs={12}>
-					<CustomButton
-						type='submit'
-						variant='contained'
-						fullWidth
-						className={`${loading ? 'loading loading-button' : ''}`}
-						loading={loading}
-					>
-						{loading ? <CircularProgress size={24} color='success' className='spinner' /> : 'Thêm Sản Phẩm'}
+					<CustomButton type='submit' className={loading ? 'loading' : ''} loading={loading}>
+						{loading ? <CircularProgress size={24} color='inherit' /> : 'Thêm sản phẩm'}
 					</CustomButton>
 				</Grid>
 			</Grid>

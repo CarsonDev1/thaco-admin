@@ -9,7 +9,7 @@ import { Category } from '@/types/category';
 
 interface EditModalProps {
 	open: boolean;
-	handleClose: () => void;
+	handleClose: any;
 	productDetails: Omit<Product, '_id'>;
 	handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;

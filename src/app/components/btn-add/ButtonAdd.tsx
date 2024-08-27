@@ -1,23 +1,20 @@
-import { Button, Typography } from '@mui/material';
-import React, { Fragment } from 'react';
-import './ButtonAdd.scss';
+import React from 'react';
+import { Button, Stack, Typography } from '@mui/material';
 
 interface IButtonAdd {
 	title: string;
 	nameBtn: string;
-	onClick?: () => void;
+	onClick: () => void;
 }
 
 const ButtonAdd: React.FC<IButtonAdd> = ({ title, nameBtn, onClick }) => {
 	return (
-		<Fragment>
-			<div className='button-add'>
-				<Typography variant='h5'>{title}</Typography>
-				<Button variant='contained' onClick={onClick}>
-					{nameBtn}
-				</Button>{' '}
-			</div>
-		</Fragment>
+		<Stack direction='row' alignItems='center' spacing={2}>
+			<Typography variant='h6'>{title}</Typography>
+			<Button variant='contained' color='primary' onClick={onClick}>
+				{nameBtn}
+			</Button>
+		</Stack>
 	);
 };
 
